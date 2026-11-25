@@ -1,0 +1,13 @@
+services:
+  mcpserver:
+    image: mcpserver
+    build:
+      context: .
+      dockerfile: McpServer/Dockerfile
+    ports:
+      - "8080:8080"           # MCP endpoint: http://localhost:8080/mcp
+    environment:
+      MCP_SERVICES_PATH: /services
+    volumes:
+      # One folder per service; edits are hot-reloaded while the container runs.
+      - ./ServiceConfigExample:/services/weather:ro
