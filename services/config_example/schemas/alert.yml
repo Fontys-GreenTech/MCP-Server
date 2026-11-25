@@ -1,0 +1,29 @@
+# api/weather/schemas/alert.yml — shared JSON Schema (2020-12), written as YAML.
+# Referenced with $ref from endpoint bodies or output schemas.
+# All standard JSON Schema keywords are allowed here.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Alert
+type: object
+additionalProperties: false
+properties:
+  threshold:
+    type: number
+    description: Temperature in the city's chosen units
+    minimum: -80
+    maximum: 60
+  condition:
+    type: string
+    enum: [above, below]
+    description: Fire when the temperature goes above or below the threshold
+  notify:
+    type: array
+    description: Where to send the alert
+    items:
+      type: string
+      format: email
+    maxItems: 5
+  active:
+    type: boolean
+    default: true
+required: [threshold, condition]

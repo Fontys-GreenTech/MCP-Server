@@ -1,0 +1,232 @@
+# =============================================================================
+# api/weather/config.yml — API-level config (REFERENCE: every option shown)
+# =============================================================================
+# This is our own format, not a standard. Every endpoint in
+# ./endpoints/*.yml inherits these settings unless it overrides them.
+#
+# Legend:
+#   (required)  must be present
+#   (default X) value used when the key is omitted
+#   Mutually exclusive alternatives are shown commented out below the active one.
+#
+# Value interpolation (resolved AFTER YAML parsing, in any string value):
+#   ${VAR}               environment variable, error if missing
+#   ${VAR:-fallback}     environment variable with fallback
+#   ${file:/path/to/x}   contents of a file (e.g. Docker/K8s secret), trimmed
+# =============================================================================
+
+# --- Meta --------------------------------------------------------------------
+config_version: 1                 # (required) version of THIS config format, for migrations
+name: weather                     # (required) unique id; [a-z0-9_-]; used as tool prefix
+title: Weather API                # (default: name) human-readable display name
+description: |                    # (required) shown to the model; explain WHAT the API is for
+  Current weather data and weather alerts for cities worldwide.
+  Use this for any question about the weather right now.
+enabled: true                     # (default true) false = load nothing from this folder
+tags: [weather, external]         # (default []) free labels for filtering/grouping
+owner: team-greentech             # (optional) who maintains this config
+docs_url: https://api.example-weather.com/docs   # (optional) link for humans
+
+# --- Tool naming & loading ---------------------------------------------------
+tools:
+  prefix: weather                 # (default: name) tool name = <prefix><separator><file stem>
+  separator: "."                  # (default ".") allowed: "." "_" "-"
+  include: ["*"]                  # (default ["*"]) globs of endpoint files to load
+  exclude: []                     # (default []) globs of endpoint files to skip
+
+# --- Base URL & environments -------------------------------------------------
+base_url: https://api.example-weather.com/{version}   # (required unless `environments` is set)
+url_variables:                    # (optional) fills {placeholders} in base_url
+  version:
+    default: v1
+    enum: [v1, v2]
+    from_env: WEATHER_API_VERSION # (optional) override the default from an env var
+
+environments:                     # (optional) overrides base_url per environment
+  production:
+    base_url: https://api.example-weather.com/{version}
+  staging:
+    base_url: https://staging.api.example-weather.com/{version}
+  local:
+    base_url: http://localhost:8080/{version}
+active_environment: ${WEATHER_ENV:-production}   # (default: first entry)
+
+# --- Authentication ----------------------------------------------------------
+# Exactly ONE `auth` block. All supported types are listed; only one is active.
+auth:
+  type: api_key                   # none | api_key | bearer | basic | oauth2 | custom
+  in: query                       # header | query | cookie
+  name: appid                     # header / query param / cookie name
+  value: ${WEATHER_API_KEY}       # NEVER hardcode secrets
+  prefix: ""                      # (default "") prepended to the value, e.g. "Token "
+
+# auth:
+#   type: none
+
+# auth:
+#   type: bearer
+#   token: ${WEATHER_TOKEN}
+#   header: Authorization         # (default Authorization)
+#   scheme: Bearer                # (default Bearer)
+
+# auth:
+#   type: basic
+#   username: ${WEATHER_USER}
+#   password: ${WEATHER_PASS}
+
+# auth:
+#   type: oauth2
+#   flow: client_credentials      # client_credentials | refresh_token
+#   token_url: https://auth.example-weather.com/oauth/token
+#   client_id: ${WEATHER_CLIENT_ID}
+#   client_secret: ${WEATHER_CLIENT_SECRET}
+#   refresh_token: ${WEATHER_REFRESH_TOKEN}   # only for flow: refresh_token
+#   scopes: [weather.read, alerts.write]
+#   audience: https://api.example-weather.com # (optional) some providers need it
+#   client_auth: body             # body | basic — how client_id/secret are sent
+#   extra_params: {}              # extra form fields for the token request
+#   refresh_before_expiry_s: 60   # (default 60) refresh the token this early
+#   token_cache: memory           # memory | file
+#   token_cache_path: .cache/weather-token.json   # only for token_cache: file
+
+# auth:
+#   type: custom                  # several headers/params at once
+#   headers:
+#     X-Client-Id: ${WEATHER_CLIENT_ID}
+#     X-Client-Secret: ${WEATHER_CLIENT_SECRET}
+#   query:
+#     tenant: ${WEATHER_TENANT}
+#   cookies:
+#     session: ${WEATHER_SESSION}
+
+# --- HTTP client defaults ----------------------------------------------------
+http:
+  headers:                        # (default {}) sent on every request
+    Accept: application/json
+    X-Requested-By: mcp-rest-server
+  query: {}                       # (default {}) query params sent on every request
+  user_agent: mcp-rest-server/1.0 # (default: server name/version)
+  timeout:
+    connect_ms: 5000              # (default 5000)
+    read_ms: 10000                # (default 10000)
+    total_ms: 15000               # (default 15000) hard cap per attempt
+  follow_redirects: true          # (default true)
+  max_redirects: 5                # (default 5)
+  compression: true               # (default true) send Accept-Encoding: gzip, br
+  http2: false                    # (default false)
+  keep_alive: true                # (default true)
+
+tls:
+  verify: true                    # (default true) NEVER false in production
+  ca_file: null                   # (optional) custom CA bundle path
+  client_cert: null               # (optional) mTLS certificate path
+  client_key: null                # (optional) mTLS key path
+  client_key_password: null       # (optional) use ${ENV}
+  min_version: "1.2"              # (default "1.2") "1.2" | "1.3"
+
+proxy:
+  url: null                       # (optional) e.g. http://proxy.local:3128
+  no_proxy: [localhost, 127.0.0.1]
+
+# --- Reliability -------------------------------------------------------------
+retry:
+  max_attempts: 3                 # (default 1 = no retry) total attempts incl. the first
+  on_status: [429, 502, 503, 504] # (default [429, 502, 503, 504])
+  on_network_error: true          # (default true) timeouts, connection resets, DNS
+  only_idempotent_methods: true   # (default true) don't retry POST/PATCH unless overridden
+  respect_retry_after: true       # (default true) honour the Retry-After header
+  backoff:
+    type: exponential             # fixed | linear | exponential
+    initial_ms: 500
+    max_ms: 8000
+    multiplier: 2.0               # only for exponential
+    jitter: full                  # none | full | equal
+
+rate_limit:
+  requests: 60                    # (optional) max requests ...
+  per: minute                     # ... per second | minute | hour | day
+  burst: 10                       # (default = requests) short bursts allowed
+  on_limit: wait                  # wait | fail — wait queues the call, fail returns an error
+  max_wait_ms: 10000              # (default 10000) only for on_limit: wait
+  scope: api                      # api (shared by all endpoints) | endpoint (each its own)
+
+concurrency:
+  max_in_flight: 5                # (default 10) parallel requests to this API
+
+circuit_breaker:
+  enabled: false                  # (default false)
+  failure_threshold: 5            # consecutive failures before opening
+  reset_after_ms: 30000           # time before one trial request is allowed
+
+cache:
+  enabled: false                  # (default false)
+  ttl_s: 60                       # (default 60)
+  methods: [GET]                  # (default [GET])
+  max_entries: 500                # (default 500)
+  key_include_headers: []         # headers that change the response, e.g. [Accept-Language]
+  respect_cache_control: true     # (default true) honour no-store / max-age from the API
+
+# --- Request defaults --------------------------------------------------------
+request:
+  content_type: json              # (default json) json | form | multipart | text
+  query_array_style: repeat       # repeat (a=1&a=2) | comma (a=1,2) | brackets (a[]=1&a[]=2)
+  drop_null_params: true          # (default true) omit params whose value is null
+  drop_empty_strings: false       # (default false)
+  path_param_encoding: strict     # strict (encode "/") | allow_slash
+
+# --- Response defaults -------------------------------------------------------
+response:
+  format: json                    # json | text | auto (by Content-Type)
+  max_bytes: 1048576              # (default 1 MiB) larger bodies are cut off
+  on_too_large: truncate          # truncate | error
+  max_chars_to_model: 20000       # (default 20000) cap on text returned to the model
+  include_status: false           # (default false) add HTTP status to the tool result
+  include_headers: []             # e.g. [X-RateLimit-Remaining, ETag]
+  structured_content: true        # (default true) also return MCP structuredContent
+  pretty: false                   # (default false) pretty-print JSON for the model
+
+# --- Error handling ----------------------------------------------------------
+errors:
+  include_body: true              # (default true) pass the API's error body to the model
+  body_max_chars: 2000            # (default 2000)
+  success_status: [200, 201, 202, 204]   # (default: any 2xx)
+  messages:                       # (optional) friendlier messages per status
+    "401": Authentication failed — check WEATHER_API_KEY.
+    "403": This API key has no access to this resource.
+    "404": Not found — check the city name.
+    "429": Rate limited by the weather API, try again later.
+    "5xx": The weather API is having problems.
+
+# --- Pagination defaults (endpoints can override) ----------------------------
+pagination:
+  type: none                      # none | offset | page | cursor | link_header
+  # every pagination option is shown in endpoints/get_current.yml
+
+# --- Security / guardrails ---------------------------------------------------
+security:
+  allowed_hosts:                  # (default: hosts of base_url + environments) block all else
+    - api.example-weather.com
+    - staging.api.example-weather.com
+  allow_private_networks: false   # (default false) block 10.x, 192.168.x, 127.x etc. (SSRF)
+  allowed_methods: [GET, POST, PUT, PATCH, DELETE]   # (default: all)
+  read_only: false                # (default false) true = only load GET/HEAD endpoints
+  require_confirmation_for: [DELETE]   # (default [DELETE]) methods that need user confirmation
+
+# --- Default MCP tool annotations (endpoints can override) -------------------
+annotations:
+  openWorldHint: true             # external API, so true
+  # readOnlyHint / destructiveHint / idempotentHint are derived from the HTTP
+  # method unless an endpoint sets them explicitly:
+  #   GET/HEAD   -> readOnlyHint true, idempotentHint true
+  #   PUT        -> idempotentHint true
+  #   DELETE     -> destructiveHint true, idempotentHint true
+  #   POST/PATCH -> all false
+
+# --- Logging -----------------------------------------------------------------
+logging:
+  level: info                     # debug | info | warn | error
+  log_requests: true              # method, URL, status, duration
+  log_bodies: false               # (default false) request/response bodies
+  redact_headers: [Authorization, Cookie, X-Api-Key]
+  redact_query: [appid, api_key, token]
+  redact_body_fields: [password, secret, token]

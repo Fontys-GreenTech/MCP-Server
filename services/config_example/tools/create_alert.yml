@@ -1,0 +1,49 @@
+# api/weather/endpoints/create_alert.yml — POST endpoint with a body
+# Tool name: weather.create_alert
+# See get_current.yml for every available option; this file uses the body-related ones.
+
+title: Create weather alert
+description: |
+  Create an alert that fires when a city's temperature goes above or below a threshold.
+method: POST
+path: /alerts/{city}
+
+params:
+  - name: city
+    in: path
+    type: string
+    required: true
+    description: City the alert is for
+
+body:
+  content_type: json
+  arg_name: spread                # threshold/condition become top-level tool arguments
+  schema:
+    $ref: ../schemas/alert.yml
+  template:
+    source: mcp-rest-server
+
+response:
+  select: $.alert
+  output_schema:
+    type: object
+    properties:
+      id: { type: string }
+      status: { type: string }
+
+errors:
+  messages:
+    "409": An alert with these settings already exists for this city.
+
+overrides:
+  retry:
+    max_attempts: 1               # POST is not idempotent: never retry
+
+annotations:
+  readOnlyHint: false
+  destructiveHint: false
+  idempotentHint: false
+  openWorldHint: true
+
+confirm: true
+confirm_message: Create a weather alert for {city}?

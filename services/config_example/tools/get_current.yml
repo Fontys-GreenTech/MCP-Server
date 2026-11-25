@@ -1,0 +1,187 @@
+# =============================================================================
+# api/weather/endpoints/get_current.yml — ENDPOINT (REFERENCE: every option shown)
+# =============================================================================
+# Tool name = <prefix><separator><file stem>  ->  weather.get_current
+# Anything not set here is inherited from ../config.yml.
+# =============================================================================
+
+# --- Tool metadata (what the model sees) -------------------------------------
+title: Get current weather        # (optional) display name
+description: |                    # (required) WHAT it does and WHEN to use it
+  Get the current weather for a city.
+  Returns temperature (°C or °F), humidity and pressure.
+  Use for "what's the weather in X right now" questions.
+enabled: true                     # (default true)
+tags: [read, current]             # (default [])
+deprecated: false                 # (default false) true = still loaded, description gets a warning
+examples:                         # (optional) appended to the description for the model
+  - arguments: { city: Tilburg, units: metric }
+    description: Current weather in Tilburg in Celsius
+
+# --- Request -----------------------------------------------------------------
+method: GET                       # (required) GET | POST | PUT | PATCH | DELETE | HEAD
+path: /weather                    # (required) relative to base_url; {name} = path param
+
+# --- Parameters -> become properties in the tool's inputSchema --------------
+params:
+  - name: city                    # (required) argument name the model fills in
+    in: query                     # (required) path | query | header | cookie
+    api_name: q                   # (default: name) name the API actually expects
+    type: string                  # string | integer | number | boolean | array | object
+    required: true                # (default false; always true for in: path)
+    description: City name, e.g. "Tilburg"
+    # string constraints
+    min_length: 1
+    max_length: 100
+    pattern: "^[^/?#]+$"          # regex the value must match
+    format: null                  # date | date-time | email | uri | uuid ...
+    examples: [Tilburg, Eindhoven]
+
+  - name: units
+    in: query
+    type: string
+    enum: [metric, imperial]      # allowed values (quote ambiguous ones like "no"/"on")
+    default: metric               # used when the model omits it
+    description: metric = °C, imperial = °F
+
+  - name: country
+    in: query
+    type: string
+    description: ISO 3166 country code
+    nullable: true                # (default false) allow null
+    hidden: false                 # (default false) true = not exposed to the model
+    deprecated: false
+
+  - name: lang
+    in: query
+    type: string
+    const: en                     # fixed value; never exposed to the model, always sent
+
+  - name: fields
+    in: query
+    type: array
+    items: { type: string, enum: [temp, humidity, pressure, wind] }
+    min_items: 1
+    max_items: 4
+    unique_items: true
+    array_style: comma            # (default: config request.query_array_style)
+
+  - name: days
+    in: query
+    type: integer
+    minimum: 0                    # number constraints
+    maximum: 7
+    exclusive_minimum: null
+    exclusive_maximum: null
+    multiple_of: 1
+    default: 0
+
+  - name: X-Request-Id
+    in: header
+    type: string
+    hidden: true
+    value: "${uuid}"              # server-generated value; built-ins: ${uuid} ${now} ${today}
+
+# --- Body (only for POST/PUT/PATCH; shown here for completeness) -------------
+# body:
+#   content_type: json            # (default: config request.content_type) json | form | multipart | text
+#   arg_name: body                # (default: spread) "spread" = body properties become
+#                                 #   top-level tool arguments; a name = nested under that arg
+#   schema:                       # JSON Schema (2020-12); inline...
+#     type: object
+#     properties:
+#       threshold: { type: number }
+#     required: [threshold]
+#   # ...or a reference:
+#   # schema: { $ref: ../schemas/alert.yml }
+#   template:                     # (optional) fixed fields merged into the body
+#     source: mcp-rest-server
+#   wrap_in: data                 # (optional) send as {"data": {...}}
+
+# --- Pagination --------------------------------------------------------------
+# Exactly ONE pagination block. All types are listed; only one is active.
+pagination:
+  type: none
+
+# pagination:
+#   type: offset
+#   offset_param: offset          # query param names
+#   limit_param: limit
+#   default_limit: 50
+#   max_limit: 100
+#   total_path: $.total           # JSONPath to the total count (optional)
+
+# pagination:
+#   type: page
+#   page_param: page
+#   size_param: per_page
+#   first_page: 1                 # 0 or 1
+#   default_size: 50
+#   max_size: 100
+#   total_pages_path: $.meta.total_pages
+
+# pagination:
+#   type: cursor
+#   cursor_param: cursor          # where the cursor goes in the next request
+#   cursor_in: query              # query | header | body
+#   next_cursor_path: $.next_cursor   # JSONPath in the response
+#   has_more_path: $.has_more     # (optional) stop when false
+#   limit_param: limit
+#   default_limit: 50
+
+# pagination:
+#   type: link_header             # RFC 8288 Link: <...>; rel="next"
+
+# Shared by all pagination types:
+# pagination_mode: single         # single = return one page + "next" info to the model
+#                                 # all    = fetch all pages and merge (bounded by max_pages)
+# max_pages: 10
+# items_path: $.items             # JSONPath to the array that gets merged in mode: all
+
+# --- Response handling -------------------------------------------------------
+response:
+  format: json                    # json | text | auto
+  select: $.main                  # (optional) JSONPath: return only this part
+  pick: [temp, humidity, pressure]   # (optional) keep only these keys (after select)
+  omit: []                        # (optional) remove these keys
+  rename: { temp: temperature }   # (optional) rename keys
+  max_items: 50                   # (optional) cut arrays after N items
+  max_chars_to_model: 5000        # overrides config
+  include_status: false
+  include_headers: [X-RateLimit-Remaining]
+  output_schema:                  # (optional) becomes the MCP outputSchema
+    type: object
+    properties:
+      temperature: { type: number }
+      humidity: { type: number }
+      pressure: { type: number }
+  empty_message: No weather data found for this city.   # returned when the body is empty
+
+# --- Errors (overrides config) -----------------------------------------------
+errors:
+  messages:
+    "404": City not found — try the English spelling or add a country code.
+  treat_as_success: []            # e.g. [404] when "not found" is a normal answer
+
+# --- Overrides of config.yml -------------------------------------------------
+# Any of these config sections can be overridden per endpoint.
+# auth and base_url can NOT be overridden (security stays in one place).
+overrides:
+  http:
+    headers: { Accept-Language: en }
+    timeout: { total_ms: 8000 }
+  retry: { max_attempts: 2 }
+  rate_limit: { requests: 30, per: minute, scope: endpoint }
+  cache: { enabled: true, ttl_s: 300 }
+  response: { pretty: false }
+
+# --- MCP tool annotations ----------------------------------------------------
+annotations:
+  readOnlyHint: true              # (default: from method) does not change anything
+  destructiveHint: false          # (default: from method) may delete/overwrite data
+  idempotentHint: true            # (default: from method) safe to repeat with same args
+  openWorldHint: true             # (default: config) talks to an external system
+
+# --- Confirmation ------------------------------------------------------------
+confirm: false                    # (default: config security.require_confirmation_for)
+confirm_message: null             # (optional) text shown when confirm is true
