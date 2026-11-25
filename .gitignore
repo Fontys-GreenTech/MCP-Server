@@ -1,0 +1,12 @@
+# Build output
+bin/
+obj/
+
+# IDE / user files
+*.user
+*.suo
+.vs/
+.vscode/
+
+# OAuth token caches written by services (token_cache: file)
+.cache/
