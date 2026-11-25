@@ -1,0 +1,27 @@
+title: Get daily forecast
+description: |
+  Day-by-day forecast for up to 16 days: min/max temperature, precipitation amount and
+  probability, weather code, max wind speed, sunrise and sunset. Values are arrays aligned
+  with daily.time.
+method: GET
+path: /forecast
+
+params:
+  - { name: latitude, in: query, type: number, required: true, minimum: -90, maximum: 90, description: Latitude in decimal degrees }
+  - { name: longitude, in: query, type: number, required: true, minimum: -180, maximum: 180, description: Longitude in decimal degrees }
+  - name: forecast_days
+    in: query
+    type: integer
+    minimum: 1
+    maximum: 16
+    default: 7
+    description: Number of days to forecast, starting today
+  - { name: temperature_unit, in: query, type: string, enum: [celsius, fahrenheit], default: celsius }
+  - { name: wind_speed_unit, in: query, type: string, enum: [kmh, ms, mph, kn], default: kmh }
+  - name: daily
+    in: query
+    const: weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,sunrise,sunset
+  - { name: timezone, in: query, const: auto }
+
+response:
+  pick: [latitude, longitude, timezone, daily_units, daily]

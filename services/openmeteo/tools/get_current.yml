@@ -1,0 +1,44 @@
+title: Get current weather
+description: |
+  Current conditions at a location: temperature, feels-like temperature, humidity,
+  precipitation, weather code and wind. Times are in the location's local timezone.
+method: GET
+path: /forecast
+examples:
+  - arguments: { latitude: 51.5555, longitude: 5.0913 }
+    description: Current weather in Tilburg, NL
+
+params:
+  - name: latitude
+    in: query
+    type: number
+    required: true
+    minimum: -90
+    maximum: 90
+    description: Latitude in decimal degrees (WGS84)
+  - name: longitude
+    in: query
+    type: number
+    required: true
+    minimum: -180
+    maximum: 180
+    description: Longitude in decimal degrees (WGS84)
+  - name: temperature_unit
+    in: query
+    type: string
+    enum: [celsius, fahrenheit]
+    default: celsius
+  - name: wind_speed_unit
+    in: query
+    type: string
+    enum: [kmh, ms, mph, kn]
+    default: kmh
+  - name: current
+    in: query
+    const: temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,is_day
+  - name: timezone
+    in: query
+    const: auto
+
+response:
+  pick: [latitude, longitude, timezone, current_units, current]

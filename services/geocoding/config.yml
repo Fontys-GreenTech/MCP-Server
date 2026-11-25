@@ -1,0 +1,32 @@
+# Open-Meteo geocoding API — free, no API key needed.
+# Docs: https://open-meteo.com/en/docs/geocoding-api
+config_version: 1
+name: geocoding
+title: Open-Meteo Geocoding
+description: |
+  Find places by name and get their coordinates, country, region, timezone and population.
+  Use this to get latitude/longitude before calling the weather tools.
+tags: [geo, external, free]
+docs_url: https://open-meteo.com/en/docs/geocoding-api
+
+tools:
+  separator: "_"
+
+base_url: https://geocoding-api.open-meteo.com/v1
+
+auth:
+  type: none
+
+http:
+  headers:
+    Accept: application/json
+
+retry:
+  max_attempts: 3
+
+cache:                            # place data hardly changes
+  enabled: true
+  ttl_s: 86400
+
+security:
+  read_only: true

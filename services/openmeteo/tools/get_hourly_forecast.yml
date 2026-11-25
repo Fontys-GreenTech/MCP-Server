@@ -1,0 +1,27 @@
+title: Get hourly forecast
+description: |
+  Hour-by-hour forecast starting at the current hour: temperature, precipitation
+  probability and amount, weather code and wind. Use for "will it rain this afternoon"
+  style questions. Values are arrays aligned with hourly.time.
+method: GET
+path: /forecast
+
+params:
+  - { name: latitude, in: query, type: number, required: true, minimum: -90, maximum: 90, description: Latitude in decimal degrees }
+  - { name: longitude, in: query, type: number, required: true, minimum: -180, maximum: 180, description: Longitude in decimal degrees }
+  - name: forecast_hours
+    in: query
+    type: integer
+    minimum: 1
+    maximum: 168
+    default: 24
+    description: Number of hours to forecast, starting now
+  - { name: temperature_unit, in: query, type: string, enum: [celsius, fahrenheit], default: celsius }
+  - { name: wind_speed_unit, in: query, type: string, enum: [kmh, ms, mph, kn], default: kmh }
+  - name: hourly
+    in: query
+    const: temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m
+  - { name: timezone, in: query, const: auto }
+
+response:
+  pick: [latitude, longitude, timezone, hourly_units, hourly]

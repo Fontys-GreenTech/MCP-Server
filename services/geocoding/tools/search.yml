@@ -1,0 +1,41 @@
+title: Search places
+description: |
+  Search for cities, towns and other places by name. Returns the best matches with
+  coordinates. Add a country code to disambiguate (e.g. "Hamilton" in CA vs NZ).
+method: GET
+path: /search
+examples:
+  - arguments: { name: Tilburg, count: 1 }
+    description: Coordinates of Tilburg
+
+params:
+  - name: name
+    in: query
+    type: string
+    required: true
+    min_length: 2
+    max_length: 100
+    description: Place name (a postal code also works)
+  - name: count
+    in: query
+    type: integer
+    minimum: 1
+    maximum: 10
+    default: 5
+    description: Maximum number of results
+  - name: country_code
+    in: query
+    api_name: countryCode
+    type: string
+    pattern: "^[A-Za-z]{2}$"
+    description: ISO 3166-1 alpha-2 country code to restrict results, e.g. NL
+  - name: language
+    in: query
+    type: string
+    default: en
+    description: Language for place names, e.g. en, nl, de
+
+response:
+  select: $.results
+  pick: [name, latitude, longitude, country_code, country, admin1, admin2, timezone, population, elevation]
+  empty_message: No places found with that name — check the spelling or try a larger nearby place.
