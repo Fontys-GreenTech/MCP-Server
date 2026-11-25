@@ -1,0 +1,42 @@
+title: Search repositories
+description: |
+  Search public repositories (and private ones the token can access) using GitHub search
+  syntax, e.g. "mcp server language:csharp", "user:dotnet topic:aspnetcore", "stars:>1000 rust".
+method: GET
+path: /search/repositories
+examples:
+  - arguments: { query: "model context protocol language:csharp", sort: stars }
+    description: Popular C# MCP repositories
+
+params:
+  - name: query
+    in: query
+    api_name: q
+    type: string
+    required: true
+    min_length: 1
+    max_length: 256
+    description: GitHub search query
+  - name: sort
+    in: query
+    type: string
+    enum: [stars, forks, updated, help-wanted-issues]
+    description: Sort field; omit for best match
+  - name: order
+    in: query
+    type: string
+    enum: [desc, asc]
+    default: desc
+
+pagination:
+  type: page
+  page_param: page
+  size_param: per_page
+  first_page: 1
+  default_size: 10
+  max_size: 50
+
+response:
+  select: $.items
+  pick: [full_name, description, html_url, stargazers_count, forks_count, language, open_issues_count, updated_at]
+  empty_message: No repositories match that query.

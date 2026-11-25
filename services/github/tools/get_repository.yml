@@ -1,0 +1,12 @@
+title: Get repository
+description: Details of one repository — description, stars, default branch, license, topics.
+method: GET
+path: /repos/{owner}/{repo}
+
+params:
+  - { name: owner, in: path, type: string, pattern: "^[A-Za-z0-9-]+$", description: User or organisation }
+  - { name: repo, in: path, type: string, pattern: "^[A-Za-z0-9._-]+$", description: Repository name }
+
+response:
+  pick: [full_name, description, html_url, private, default_branch, language, stargazers_count,
+         forks_count, open_issues_count, topics, license, created_at, pushed_at]

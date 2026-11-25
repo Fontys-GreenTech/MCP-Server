@@ -1,0 +1,65 @@
+# GitHub REST API — example of an authenticated service (bearer token).
+# Docs: https://docs.github.com/en/rest
+config_version: 1
+name: github
+title: GitHub
+description: |
+  Search GitHub repositories, read repository details and issues, and create issues.
+  Repositories are identified by owner (user or organisation) and repo name,
+  e.g. owner "dotnet", repo "runtime".
+tags: [github, external, auth]
+docs_url: https://docs.github.com/en/rest
+
+tools:
+  separator: "_"                  # github_search_repositories, github_create_issue, ...
+
+base_url: https://api.github.com
+
+# --- Authentication ----------------------------------------------------------
+# The token comes from ./.env (or the GITHUB_TOKEN environment variable).
+# Never put the token itself in this file.
+auth:
+  type: bearer
+  token: ${GITHUB_TOKEN}
+  header: Authorization
+  scheme: Bearer
+
+http:
+  headers:
+    Accept: application/vnd.github+json
+    X-GitHub-Api-Version: "2022-11-28"
+  user_agent: http-mcp-proxy/1.0  # GitHub rejects requests without a User-Agent
+  timeout:
+    total_ms: 15000
+
+retry:
+  max_attempts: 3
+  on_status: [502, 503, 504]
+  only_idempotent_methods: true   # never retry create_issue
+
+concurrency:
+  max_in_flight: 4
+
+response:
+  format: json
+  max_chars_to_model: 15000
+  include_headers: [X-RateLimit-Remaining]
+
+errors:
+  include_body: true
+  body_max_chars: 1000
+  messages:
+    "401": GitHub rejected the token — check GITHUB_TOKEN in services/github/.env.
+    "403": Forbidden — the token lacks a permission for this action, or the rate limit is exhausted.
+    "404": Not found — check owner/repo, or the token has no access to this private repository.
+    "422": GitHub could not process the request (validation failed).
+    "5xx": GitHub is having problems, try again later.
+
+security:
+  allowed_methods: [GET, POST]
+  require_confirmation_for: [POST, DELETE]
+
+logging:
+  level: info
+  log_requests: true
+  redact_headers: [Authorization]

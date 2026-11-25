@@ -1,0 +1,9 @@
+title: Who am I
+description: |
+  Return the GitHub account the configured token belongs to. Useful to check that
+  authentication works and to find the user's own login.
+method: GET
+path: /user
+
+response:
+  pick: [login, name, html_url, public_repos, followers, created_at]

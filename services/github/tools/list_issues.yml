@@ -1,0 +1,33 @@
+title: List issues
+description: |
+  List issues of a repository, newest first. Note: GitHub also returns pull requests
+  here; those have a "pull_request" field.
+method: GET
+path: /repos/{owner}/{repo}/issues
+
+params:
+  - { name: owner, in: path, type: string, pattern: "^[A-Za-z0-9-]+$", description: User or organisation }
+  - { name: repo, in: path, type: string, pattern: "^[A-Za-z0-9._-]+$", description: Repository name }
+  - name: state
+    in: query
+    type: string
+    enum: [open, closed, all]
+    default: open
+  - name: labels
+    in: query
+    type: array
+    items: { type: string }
+    array_style: comma
+    description: Only issues with all of these labels
+  - name: per_page
+    in: query
+    type: integer
+    minimum: 1
+    maximum: 50
+    default: 10
+
+pagination:
+  type: link_header               # GitHub sends Link: <...page=2>; rel="next"
+
+response:
+  pick: [number, title, state, html_url, user, labels, comments, created_at, pull_request]

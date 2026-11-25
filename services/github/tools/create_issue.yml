@@ -1,0 +1,31 @@
+title: Create issue
+description: Open a new issue in a repository. Requires Issues write permission on the token.
+method: POST
+path: /repos/{owner}/{repo}/issues
+
+params:
+  - { name: owner, in: path, type: string, pattern: "^[A-Za-z0-9-]+$", description: User or organisation }
+  - { name: repo, in: path, type: string, pattern: "^[A-Za-z0-9._-]+$", description: Repository name }
+
+body:
+  content_type: json
+  arg_name: spread                # title/body/labels become top-level tool arguments
+  schema:
+    type: object
+    additionalProperties: false
+    properties:
+      title: { type: string, minLength: 1, maxLength: 256, description: Issue title }
+      body: { type: string, description: Issue text (Markdown) }
+      labels: { type: array, items: { type: string }, description: Label names (must exist) }
+    required: [title]
+
+response:
+  pick: [number, html_url, title, state]
+
+annotations:
+  readOnlyHint: false
+  destructiveHint: false
+  idempotentHint: false
+
+confirm: true
+confirm_message: Create issue "{title}" in {owner}/{repo}?
