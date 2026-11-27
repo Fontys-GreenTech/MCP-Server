@@ -10,3 +10,8 @@ obj/
 
 # OAuth token caches written by services (token_cache: file)
 .cache/
+
+# Secrets: per-service environment files (copy .env.example to .env)
+.env
+!.env.example
+**/.env

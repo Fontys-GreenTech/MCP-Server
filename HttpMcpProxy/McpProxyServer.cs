@@ -60,7 +60,7 @@ public static class McpProxyServer
     }
 
     /// <summary>Registers the service registry and the shared tool collection.</summary>
-    public static IServiceCollection AddHttpMcpProxy(this IServiceCollection services, IConfiguration configuration)
+    private static IServiceCollection AddHttpMcpProxy(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<ProxyOptions>(configuration.GetSection(ConfigSection));
         services.PostConfigure<ProxyOptions>(o =>
